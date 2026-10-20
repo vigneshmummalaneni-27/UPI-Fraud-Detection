@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>UPI Fraud Detection — Enhanced</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#050d1a;--card:#0d1f35;--card2:#0a1828;--border:#1a3a5c;
+  --blue:#3b82f6;--cyan:#06b6d4;--green:#10b981;--red:#ef4444;
+  --yellow:#f59e0b;--purple:#8b5cf6;--pink:#ec4899;
+  --text:#e2e8f0;--muted:#64748b;--accent:#60a5fa;
+}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:radial-gradient(ellipse at 20% 10%,rgba(59,130,246,0.06) 0%,transparent 50%),
+             radial-gradient(ellipse at 80% 90%,rgba(139,92,246,0.05) 0%,transparent 50%);
+  pointer-events:none;z-index:0;}
+
+header{position:relative;z-index:10;background:linear-gradient(90deg,#061525,#0d1f35);
+       padding:16px 36px;border-bottom:1px solid var(--border);
+       display:flex;align-items:center;justify-content:space-between;
+       box-shadow:0 4px 30px rgba(0,0,0,0.5);}
+.logo{display:flex;align-items:center;gap:14px;}
+.logo-icon{width:42px;height:42px;background:linear-gradient(135deg,#1d4ed8,#7c3aed);
+           border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;
+           box-shadow:0 0 20px rgba(59,130,246,0.3);}
+.logo h1{font-size:1.35rem;font-weight:700;color:var(--accent);}
+.logo p{font-size:0.78rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+.header-badges{display:flex;gap:8px;align-items:center;}
+.hbadge{padding:5px 12px;border-radius:6px;font-size:0.75rem;font-weight:600;
+        font-family:'JetBrains Mono',monospace;}
+.hbadge.active{background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.3);}
+.hbadge.beta{background:rgba(139,92,246,0.15);color:var(--purple);border:1px solid rgba(139,92,246,0.3);}
+.nav-btn{padding:8px 18px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.4);
+         border-radius:8px;color:var(--accent);text-decoration:none;font-size:0.85rem;font-weight:600;
+         transition:all 0.2s;}
+.nav-btn:hover{background:rgba(59,130,246,0.25);}
+
+.container{max-width:1400px;margin:0 auto;padding:24px 24px;position:relative;z-index:1;}
+
+/* Enhancement pills */
+.enhancements-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.epill{padding:6px 14px;border-radius:20px;font-size:0.78rem;font-weight:600;display:flex;align-items:center;gap:6px;}
+.epill-10{background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.3);}
+.epill-11{background:rgba(139,92,246,0.12);color:var(--purple);border:1px solid rgba(139,92,246,0.3);}
+.epill-12{background:rgba(6,182,212,0.12);color:var(--cyan);border:1px solid rgba(6,182,212,0.3);}
+.epill-13{background:rgba(236,72,153,0.12);color:var(--pink);border:1px solid rgba(236,72,153,0.3);}
+.epill-14{background:rgba(245,158,11,0.12);color:var(--yellow);border:1px solid rgba(245,158,11,0.3);}
+.pulse{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+.grid{display:grid;grid-template-columns:1.1fr 0.9fr;gap:20px;}
+
+/* Cards */
+.card{background:var(--card);border-radius:14px;padding:22px;border:1px solid var(--border);
+      backdrop-filter:blur(10px);}
+.card-title{font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:18px;
+            display:flex;align-items:center;gap:8px;padding-bottom:12px;
+            border-bottom:1px solid var(--border);}
+
+/* Form */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.fg{margin-bottom:12px;}
+label{display:block;margin-bottom:4px;color:var(--muted);font-size:0.8rem;font-weight:500;letter-spacing:0.02em;}
+input[type=text],input[type=number]{width:100%;padding:9px 12px;
+  background:var(--card2);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-size:0.9rem;font-family:'Space Grotesk',sans-serif;transition:border 0.2s;}
+input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,0.1);}
+.toggle-group{display:flex;gap:6px;}
+.toggle-btn{flex:1;padding:8px;border:1px solid var(--border);background:var(--card2);
+            color:var(--muted);border-radius:7px;cursor:pointer;font-size:0.85rem;
+            font-family:'Space Grotesk',sans-serif;transition:all 0.2s;}
+.toggle-btn.active{background:rgba(29,78,216,0.25);border-color:var(--blue);color:white;font-weight:600;}
+
+.predict-btn{width:100%;padding:14px;
+  background:linear-gradient(135deg,#1d4ed8,#7c3aed);
+  border:none;border-radius:10px;color:white;font-size:1rem;cursor:pointer;margin-top:12px;
+  font-weight:700;font-family:'Space Grotesk',sans-serif;letter-spacing:0.03em;
+  transition:all 0.3s;box-shadow:0 4px 20px rgba(29,78,216,0.3);}
+.predict-btn:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(29,78,216,0.4);}
+.predict-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
+/* Results */
+.result-box{display:none;margin-top:16px;border-radius:12px;border:2px solid;overflow:hidden;
+            animation:fadeSlide 0.4s ease;}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(-12px);}to{opacity:1;transform:translateY(0);}}
+.result-header{padding:20px;text-align:center;}
+.result-body{padding:16px;}
+.result-box.fraud .result-header{background:rgba(239,68,68,0.08);}
+.result-box.medium .result-header{background:rgba(245,158,11,0.08);}
+.result-box.legit .result-header{background:rgba(16,185,129,0.08);}
+.result-box.fraud{border-color:var(--red);}
+.result-box.medium{border-color:var(--yellow);}
+.result-box.legit{border-color:var(--green);}
+.r-icon{font-size:2.5rem;}
+.r-title{font-size:1.4rem;font-weight:800;margin:6px 0;}
+.r-prob{font-size:2.2rem;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.fraud .r-prob,.fraud .r-title{color:var(--red);}
+.medium .r-prob,.medium .r-title{color:var(--yellow);}
+.legit .r-prob,.legit .r-title{color:var(--green);}
+
+/* Action box */
+.action-box{border-radius:10px;padding:14px;margin-bottom:12px;border:1px solid;}
+.action-box.blocked{background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.4);}
+.action-box.otp{background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.4);}
+.action-box.approved{background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.4);}
+.action-row{display:flex;gap:10px;margin:5px 0;font-size:0.85rem;}
+.al{color:var(--muted);min-width:100px;}
+.av{color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.82rem;}
+
+/* Model scores (Enhancement 10) */
+.model-scores{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.ms-card{background:var(--card2);border-radius:8px;padding:10px;text-align:center;border:1px solid var(--border);}
+.ms-val{font-size:1.2rem;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.ms-lbl{font-size:0.7rem;color:var(--muted);margin-top:2px;}
+
+/* SHAP (Enhancement 11) */
+.shap-section{background:var(--card2);border-radius:10px;padding:14px;margin-bottom:12px;border:1px solid var(--border);}
+.shap-title{font-size:0.82rem;font-weight:700;color:var(--purple);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.shap-row{display:flex;align-items:center;gap:8px;margin:5px 0;}
+.shap-feat{font-size:0.78rem;color:var(--muted);width:140px;flex-shrink:0;}
+.shap-bar-bg{flex:1;height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;}
+.shap-bar{height:100%;border-radius:4px;transition:width 0.6s ease;}
+.shap-val{font-size:0.75rem;font-family:'JetBrains Mono',monospace;width:44px;text-align:right;flex-shrink:0;}
+
+/* Graph (Enhancement 14) */
+.graph-section{background:var(--card2);border-radius:10px;padding:14px;margin-bottom:12px;border:1px solid var(--border);}
+.graph-title{font-size:0.82rem;font-weight:700;color:var(--yellow);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.graph-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.gs-item{background:var(--card);border-radius:6px;padding:8px;text-align:center;}
+.gs-val{font-size:1rem;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.gs-lbl{font-size:0.68rem;color:var(--muted);margin-top:2px;}
+
+/* SMS preview */
+.sms-preview{background:var(--card2);border-radius:8px;padding:12px;border:1px solid var(--border);}
+.sms-label{font-size:0.75rem;color:var(--muted);margin-bottom:6px;}
+.sms-bubble{background:rgba(29,78,216,0.15);border-left:3px solid var(--blue);
+            border-radius:8px;padding:10px 12px;font-size:0.82rem;color:#93c5fd;
+            line-height:1.55;font-family:'JetBrains Mono',monospace;}
+
+/* OTP */
+.otp-box{background:rgba(245,158,11,0.08);border:2px dashed var(--yellow);
+         border-radius:10px;padding:12px;text-align:center;margin-bottom:12px;}
+.otp-code{font-size:2rem;font-weight:800;color:var(--yellow);letter-spacing:10px;
+          font-family:'JetBrains Mono',monospace;}
+
+/* Right panel */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+.stat-card{background:var(--card2);border-radius:8px;padding:12px;text-align:center;border:1px solid var(--border);}
+.stat-val{font-size:1.5rem;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent);}
+.stat-lbl{font-size:0.72rem;color:var(--muted);margin-top:2px;}
+
+.model-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.mtab{padding:5px 12px;border:1px solid var(--border);background:var(--card2);
+      color:var(--muted);border-radius:6px;cursor:pointer;font-size:0.78rem;
+      font-family:'Space Grotesk',sans-serif;transition:all 0.2s;}
+.mtab.active{background:rgba(29,78,216,0.2);border-color:var(--blue);color:white;}
+
+.cm-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.cm-cell{padding:10px;border-radius:7px;text-align:center;font-size:0.78rem;}
+.cm-tn,.cm-tp{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);}
+.cm-fp,.cm-fn{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);}
+.cm-cell .cn{font-size:1.3rem;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.cm-cell .cd{font-size:0.7rem;color:var(--muted);margin-top:2px;}
+
+.decision-flow{display:flex;flex-direction:column;gap:7px;margin-top:14px;}
+.df-row{border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;border:1px solid;}
+.df-row.high{background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.3);}
+.df-row.med{background:rgba(245,158,11,0.06);border-color:rgba(245,158,11,0.3);}
+.df-row.low{background:rgba(16,185,129,0.06);border-color:rgba(16,185,129,0.3);}
+
+.test-btns{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
+.test-btn{padding:8px 12px;border-radius:7px;cursor:pointer;font-size:0.82rem;
+          text-align:left;font-family:'Space Grotesk',sans-serif;transition:all 0.2s;}
+.test-btn:hover{transform:translateX(3px);}
+
+/* Streaming panel */
+.stream-panel{background:var(--card);border-radius:10px;padding:14px;border:1px solid var(--border);margin-top:16px;}
+.stream-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.stream-title{font-size:0.9rem;font-weight:700;color:var(--cyan);display:flex;align-items:center;gap:8px;}
+.stream-btn{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:0.8rem;
+            font-family:'Space Grotesk',sans-serif;font-weight:600;border:none;transition:all 0.2s;}
+.stream-btn.start{background:rgba(6,182,212,0.2);color:var(--cyan);border:1px solid rgba(6,182,212,0.4);}
+.stream-btn.stop{background:rgba(239,68,68,0.2);color:var(--red);border:1px solid rgba(239,68,68,0.4);}
+.stream-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.sm-box{background:var(--card2);border-radius:7px;padding:8px;text-align:center;}
+.sm-val{font-size:1rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--cyan);}
+.sm-lbl{font-size:0.68rem;color:var(--muted);margin-top:2px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡️</div>
+    <div>
+      <h1>UPI Fraud Detection</h1>
+      <p>Enhanced System v2.0 — ML + LSTM + GNN + Streaming</p>
+    </div>
+  </div>
+  <div class="header-badges">
+    <span class="hbadge active"><span class="pulse"></span> Live</span>
+    <span class="hbadge beta">5 Enhancements Active</span>
+    <a href="/dashboard" class="nav-btn">📊 Dashboard →</a>
+  </div>
+</header>
+
+<div class="container">
+  <div class="enhancements-bar">
+    <span class="epill epill-10">⚡ #10 LSTM Ensemble</span>
+    <span class="epill epill-11">🔍 #11 SHAP Explainability</span>
+    <span class="epill epill-12">📡 #12 Real-Time Streaming</span>
+    <span class="epill epill-13">📱 #13 Mobile API</span>
+    <span class="epill epill-14">🕸️ #14 GNN Fraud Rings</span>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT -->
+    <div class="card">
+      <div class="card-title">🔍 Transaction Analysis</div>
+
+      <div class="form-row">
+        <div class="fg"><label>Account ID</label><input type="text" id="account_id" value="ACC98765"></div>
+        <div class="fg"><label>Phone Number</label><input type="text" id="phone" value="+91-9876543210"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Amount (₹)</label><input type="number" id="amount" value="5000"></div>
+        <div class="fg"><label>Hour (0-23)</label><input type="number" id="hour" value="14" min="0" max="23"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Transaction Frequency Today</label><input type="number" id="transaction_frequency" value="3"></div>
+        <div class="fg"><label>Distance from Home (km)</label><input type="number" id="distance_from_home" value="10"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Failed Attempts</label><input type="number" id="failed_attempts" value="0"></div>
+        <div class="fg"><label>Beneficiary Age (days)</label><input type="number" id="beneficiary_age_days" value="100"></div>
+      </div>
+      <div class="fg"><label>New Device?</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" onclick="tog('new_device',0,this)">No</button>
+          <button class="toggle-btn" onclick="tog('new_device',1,this)">Yes</button>
+        </div><input type="hidden" id="new_device" value="0">
+      </div>
+      <div class="fg"><label>VPN Used?</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" onclick="tog('vpn_used',0,this)">No</button>
+          <button class="toggle-btn" onclick="tog('vpn_used',1,this)">Yes</button>
+        </div><input type="hidden" id="vpn_used" value="0">
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Same Bank?</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active" onclick="tog('same_bank',1,this)">Yes</button>
+            <button class="toggle-btn" onclick="tog('same_bank',0,this)">No</button>
+          </div><input type="hidden" id="same_bank" value="1">
+        </div>
+        <div class="fg"><label>Weekend?</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active" onclick="tog('weekend',0,this)">No</button>
+            <button class="toggle-btn" onclick="tog('weekend',1,this)">Yes</button>
+          </div><input type="hidden" id="weekend" value="0">
+        </div>
+      </div>
+
+      <button class="predict-btn" id="predictBtn" onclick="predict()">
+        🔎 Analyze Transaction (LSTM + GNN + SHAP)
+      </button>
+
+      <!-- RESULT BOX -->
+      <div class="result-box" id="resultBox">
+        <div class="result-header">
+          <div class="r-icon" id="rIcon"></div>
+          <div class="r-title" id="rTitle"></div>
+          <div class="r-prob" id="rProb"></div>
+        </div>
+        <div class="result-body">
+          <!-- Enhancement 10: Model scores -->
+          <div class="model-scores" id="modelScores"></div>
+
+          <!-- Action box -->
+          <div class="action-box" id="actionBox">
+            <div style="font-size:0.88rem;font-weight:700;margin-bottom:8px;" id="actionTitle"></div>
+            <div class="action-row"><span class="al">Transaction ID</span><span class="av" id="txnId"></span></div>
+            <div class="action-row"><span class="al">Account</span><span class="av" id="accId"></span></div>
+            <div class="action-row"><span class="al">Action Taken</span><span class="av" id="decMsg"></span></div>
+          </div>
+
+          <!-- OTP (medium only) -->
+          <div class="otp-box" id="otpBox" style="display:none">
+            <div style="font-size:0.78rem;color:var(--yellow);margin-bottom:4px;">📱 OTP Sent to Customer Mobile</div>
+            <div class="otp-code" id="otpCode"></div>
+            <div style="font-size:0.72rem;color:var(--muted);margin-top:4px;">Demo only — production sends via SMS</div>
+          </div>
+
+          <!-- Enhancement 11: SHAP -->
+          <div class="shap-section" id="shapSection" style="display:none">
+            <div class="shap-title">🔍 #11 SHAP — Why this decision?</div>
+            <div id="shapBars"></div>
+            <div style="font-size:0.75rem;color:var(--muted);margin-top:6px;" id="shapSummary"></div>
+          </div>
+
+          <!-- Enhancement 14: Graph -->
+          <div class="graph-section" id="graphSection" style="display:none">
+            <div class="graph-title">🕸️ #14 GNN — Network Risk Analysis</div>
+            <div class="graph-stats" id="graphStats"></div>
+            <div id="ringAlert" style="margin-top:8px;display:none;padding:8px 12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.4);border-radius:7px;font-size:0.82rem;color:var(--red);"></div>
+          </div>
+
+          <!-- SMS preview -->
+          <div class="sms-preview">
+            <div class="sms-label">📱 SMS Sent to Customer</div>
+            <div class="sms-bubble" id="smsBubble"></div>
+          </div>
+
+          <!-- Risk factors -->
+          <div id="riskFactors" style="margin-top:10px;"></div>
+        </div>
+      </div>
+
+      <!-- Enhancement 12: Streaming panel -->
+      <div class="stream-panel">
+        <div class="stream-top">
+          <div class="stream-title"><span class="pulse" style="background:var(--cyan)"></span>#12 Real-Time Stream</div>
+          <div style="display:flex;gap:6px;">
+            <button class="stream-btn start" onclick="startStream()">▶ Start</button>
+            <button class="stream-btn stop" onclick="stopStream()">■ Stop</button>
+          </div>
+        </div>
+        <div class="stream-metrics" id="streamMetrics">
+          <div class="sm-box"><div class="sm-val" id="smProcessed">0</div><div class="sm-lbl">Processed</div></div>
+          <div class="sm-box"><div class="sm-val" id="smFraud" style="color:var(--red)">0</div><div class="sm-lbl">Fraud Caught</div></div>
+          <div class="sm-box"><div class="sm-val" id="smRate">0%</div><div class="sm-lbl">Fraud Rate</div></div>
+          <div class="sm-box"><div class="sm-val" id="smLatency">0ms</div><div class="sm-lbl">Avg Latency</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="card">
+      <div class="card-title">📊 Model Performance</div>
+      {% if results %}
+      <div class="model-tabs">
+        {% for name in results %}
+        <button class="mtab {% if loop.first %}active{% endif %}" onclick="showModel('{{name}}',this)">{{name}}</button>
+        {% endfor %}
+      </div>
+      {% for name,stats in results.items() %}
+      <div class="model-stats" id="model-{{loop.index}}" {% if not loop.first %}style="display:none"{% endif %}>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-val">{{stats.accuracy}}%</div><div class="stat-lbl">Accuracy</div></div>
+          <div class="stat-card"><div class="stat-val">{{stats.f1}}%</div><div class="stat-lbl">F1 Score</div></div>
+          <div class="stat-card"><div class="stat-val">{{stats.auc}}%</div><div class="stat-lbl">ROC-AUC</div></div>
+        </div>
+        <p style="color:var(--muted);font-size:0.78rem;margin:10px 0 6px">Confusion Matrix</p>
+        <div class="cm-grid">
+          <div class="cm-cell cm-tn"><div class="cn" style="color:var(--green)">{{stats.cm[0][0]}}</div><div class="cd">True Negative</div></div>
+          <div class="cm-cell cm-fp"><div class="cn" style="color:var(--red)">{{stats.cm[0][1]}}</div><div class="cd">False Positive</div></div>
+          <div class="cm-cell cm-fn"><div class="cn" style="color:var(--red)">{{stats.cm[1][0]}}</div><div class="cd">False Negative</div></div>
+          <div class="cm-cell cm-tp"><div class="cn" style="color:var(--green)">{{stats.cm[1][1]}}</div><div class="cd">True Positive</div></div>
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p style="color:var(--muted);text-align:center;padding:30px">Run train_model.py first</p>
+      {% endif %}
+
+      <!-- Decision flow -->
+      <div class="decision-flow" style="margin-top:16px;">
+        <p style="color:var(--muted);font-size:0.8rem;margin-bottom:2px;">⚡ Automated Decision Engine</p>
+        <div class="df-row high"><span>🚨</span><div><div style="color:var(--red);font-weight:700;font-size:0.85rem;">Above 70% → BLOCK</div><div style="color:var(--muted);font-size:0.78rem;">Block + FRAUD SMS + Flag account</div></div></div>
+        <div class="df-row med"><span>⚠️</span><div><div style="color:var(--yellow);font-weight:700;font-size:0.85rem;">40–70% → OTP Required</div><div style="color:var(--muted);font-size:0.78rem;">Hold + OTP SMS + Review queue</div></div></div>
+        <div class="df-row low"><span>✅</span><div><div style="color:var(--green);font-weight:700;font-size:0.85rem;">Below 40% → Approve</div><div style="color:var(--muted);font-size:0.78rem;">Approve instantly + Confirm SMS</div></div></div>
+      </div>
+
+      <!-- Mobile API info -->
+      <div style="margin-top:16px;padding:12px;background:rgba(236,72,153,0.06);border:1px solid rgba(236,72,153,0.3);border-radius:10px;">
+        <div style="color:var(--pink);font-weight:700;font-size:0.85rem;margin-bottom:8px;">📱 #13 Mobile REST API</div>
+        <div style="font-size:0.78rem;color:var(--muted);font-family:'JetBrains Mono',monospace;line-height:1.8;">
+          POST /mobile/api/v1/auth/login<br>
+          GET  /mobile/api/v1/dashboard/metrics<br>
+          GET  /mobile/api/v1/alerts?risk=HIGH<br>
+          POST /mobile/api/v1/transaction/:id/action<br>
+          GET  /mobile/api/v1/notifications
+        </div>
+      </div>
+
+      <!-- Test cases -->
+      <div style="margin-top:16px;">
+        <p style="color:var(--muted);font-size:0.8rem;margin-bottom:8px;">🧪 Quick Test Cases</p>
+        <div class="test-btns">
+          <button class="test-btn" onclick="loadTest('fraud')" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.4);color:var(--red);">🚨 FRAUD: ₹48,000 | 3AM | VPN | New Device | New Account</button>
+          <button class="test-btn" onclick="loadTest('medium')" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.4);color:var(--yellow);">⚠️ MEDIUM: ₹8,000 | New Device | VPN | Normal time</button>
+          <button class="test-btn" onclick="loadTest('legit')" style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.4);color:var(--green);">✅ LEGIT: ₹500 | 2PM | Known Device | No VPN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let modelMap={};
+{% if results %}{% for name in results %}modelMap["{{name}}"]={{loop.index}};{% endfor %}{% endif %}
+let streamTimer=null;
+
+function tog(f,v,btn){
+  document.getElementById(f).value=v;
+  btn.parentElement.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function showModel(name,btn){
+  document.querySelectorAll('.model-stats').forEach(e=>e.style.display='none');
+  document.getElementById('model-'+modelMap[name]).style.display='block';
+  document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function loadTest(t){
+  const tests={
+    fraud:{amount:48000,hour:3,transaction_frequency:30,distance_from_home:2000,failed_attempts:5,new_device:1,vpn_used:1,beneficiary_age_days:1,same_bank:0,weekend:1},
+    medium:{amount:8000,hour:11,transaction_frequency:8,distance_from_home:50,failed_attempts:1,new_device:1,vpn_used:1,beneficiary_age_days:200,same_bank:1,weekend:0},
+    legit:{amount:500,hour:14,transaction_frequency:2,distance_from_home:5,failed_attempts:0,new_device:0,vpn_used:0,beneficiary_age_days:300,same_bank:1,weekend:0}
+  };
+  const d=tests[t];
+  ['amount','hour','transaction_frequency','distance_from_home','failed_attempts','beneficiary_age_days']
+    .forEach(f=>document.getElementById(f).value=d[f]);
+  ['new_device','vpn_used','same_bank','weekend'].forEach(f=>{
+    document.getElementById(f).value=d[f];
+    document.querySelectorAll(`[onclick*="'${f}'"]`).forEach(b=>{
+      b.classList.remove('active');
+      const m=b.getAttribute('onclick').match(/,(\d+),/);
+      if(m&&parseInt(m[1])===d[f])b.classList.add('active');
+    });
+  });
+}
+
+async function predict(){
+  const btn=document.getElementById('predictBtn');
+  btn.textContent='⏳ Analyzing with LSTM + GNN...';btn.disabled=true;
+  const p={
+    account_id:document.getElementById('account_id').value,
+    phone:document.getElementById('phone').value,
+    amount:document.getElementById('amount').value,
+    hour:document.getElementById('hour').value,
+    transaction_frequency:document.getElementById('transaction_frequency').value,
+    distance_from_home:document.getElementById('distance_from_home').value,
+    failed_attempts:document.getElementById('failed_attempts').value,
+    new_device:document.getElementById('new_device').value,
+    vpn_used:document.getElementById('vpn_used').value,
+    beneficiary_age_days:document.getElementById('beneficiary_age_days').value,
+    same_bank:document.getElementById('same_bank').value,
+    weekend:document.getElementById('weekend').value
+  };
+  try{
+    const res=await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+    const d=await res.json();
+    const box=document.getElementById('resultBox');
+    box.style.display='block';
+    const ab=document.getElementById('actionBox');
+    const ob=document.getElementById('otpBox');
+
+    if(d.decision==='BLOCKED'){
+      box.className='result-box fraud';
+      document.getElementById('rIcon').textContent='🚨';
+      document.getElementById('rTitle').innerHTML='<span style="color:var(--red)">TRANSACTION BLOCKED</span>';
+      ab.className='action-box blocked';
+      document.getElementById('actionTitle').innerHTML='🚨 ACTION: Transaction Automatically Blocked';
+      ob.style.display='none';
+    }else if(d.decision==='OTP_REQUIRED'){
+      box.className='result-box medium';
+      document.getElementById('rIcon').textContent='⚠️';
+      document.getElementById('rTitle').innerHTML='<span style="color:var(--yellow)">OTP VERIFICATION REQUIRED</span>';
+      ab.className='action-box otp';
+      document.getElementById('actionTitle').innerHTML='⚠️ ACTION: OTP Sent for Verification';
+      ob.style.display='block';
+      document.getElementById('otpCode').textContent=d.action.otp||'------';
+    }else{
+      box.className='result-box legit';
+      document.getElementById('rIcon').textContent='✅';
+      document.getElementById('rTitle').innerHTML='<span style="color:var(--green)">TRANSACTION APPROVED</span>';
+      ab.className='action-box approved';
+      document.getElementById('actionTitle').innerHTML='✅ ACTION: Transaction Processed';
+      ob.style.display='none';
+    }
+
+    document.getElementById('rProb').textContent=d.probability+'% Fraud Probability';
+    document.getElementById('txnId').textContent=d.txn_id;
+    document.getElementById('accId').textContent=d.account_id;
+    document.getElementById('decMsg').textContent=d.decision_msg;
+    document.getElementById('smsBubble').textContent=d.sms_preview;
+
+    // Enhancement 10: Model scores
+    if(d.model_scores){
+      const ms=d.model_scores;
+      const col=d.probability>=70?'var(--red)':d.probability>=40?'var(--yellow)':'var(--green)';
+      document.getElementById('modelScores').innerHTML=`
+        <div class="ms-card"><div class="ms-val" style="color:${col}">${ms.ensemble||d.probability}%</div><div class="ms-lbl">Ensemble Final</div></div>
+        <div class="ms-card"><div class="ms-val" style="color:var(--blue)">${ms.random_forest||'—'}%</div><div class="ms-lbl">Random Forest</div></div>
+        <div class="ms-card"><div class="ms-val" style="color:var(--purple)">${ms.lstm_deep?ms.lstm_deep+'%':'—'}</div><div class="ms-lbl">LSTM Deep</div></div>`;
+    }
+
+    // Enhancement 11: SHAP
+    if(d.shap&&d.shap.explanations){
+      document.getElementById('shapSection').style.display='block';
+      let html='';
+      d.shap.explanations.slice(0,6).forEach(e=>{
+        const col=e.impact==='FRAUD'?'var(--red)':e.impact==='SAFE'?'var(--green)':'var(--muted)';
+        const pct=Math.min(Math.abs(e.attribution)*2,100);
+        html+=`<div class="shap-row">
+          <div class="shap-feat">${e.feature}</div>
+          <div class="shap-bar-bg"><div class="shap-bar" style="width:${pct}%;background:${col};"></div></div>
+          <div class="shap-val" style="color:${col}">${e.attribution>0?'+':''}${e.attribution}%</div>
+        </div>`;
+      });
+      document.getElementById('shapBars').innerHTML=html;
+      document.getElementById('shapSummary').textContent=d.shap.summary||'';
+    }
+
+    // Enhancement 14: Graph
+    if(d.graph_analysis){
+      document.getElementById('graphSection').style.display='block';
+      const g=d.graph_analysis;
+      const ns=g.network_stats||{};
+      document.getElementById('graphStats').innerHTML=`
+        <div class="gs-item"><div class="gs-val" style="color:var(--yellow)">${g.graph_risk}%</div><div class="gs-lbl">Graph Risk</div></div>
+        <div class="gs-item"><div class="gs-val" style="color:var(--cyan)">${ns.neighbor_fraud_rate||0}%</div><div class="gs-lbl">Neighbor Fraud</div></div>
+        <div class="gs-item"><div class="gs-val" style="color:var(--purple)">${ns.round_trip_cycles||0}</div><div class="gs-lbl">Cycle Count</div></div>`;
+      const ra=document.getElementById('ringAlert');
+      if(g.is_fraud_ring_member&&g.ring_info){
+        ra.style.display='block';
+        ra.innerHTML=`🕸️ FRAUD RING DETECTED: ${g.ring_info.ring_size}-account network (density ${g.ring_info.density})`;
+      }else{
+        ra.style.display='none';
+      }
+    }
+
+    // Risk factors
+    let rf='';
+    if(d.risk_factors&&d.risk_factors.length>0){
+      rf='<p style="color:var(--muted);font-size:0.78rem;margin:10px 0 5px">Risk Factors:</p>';
+      d.risk_factors.forEach(f=>{
+        rf+=`<div style="background:rgba(239,68,68,0.07);border-left:2px solid var(--red);padding:6px 10px;margin:4px 0;border-radius:4px;font-size:0.82rem;color:#fca5a5;">⚠️ ${f}</div>`;
+      });
+    }
+    document.getElementById('riskFactors').innerHTML=rf;
+    box.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }catch(e){alert('Error: '+e.message);}
+  btn.textContent='🔎 Analyze Transaction (LSTM + GNN + SHAP)';btn.disabled=false;
+}
+
+async function startStream(){
+  await fetch('/streaming/start',{method:'POST'});
+  streamTimer=setInterval(updateStream,1500);
+}
+async function stopStream(){
+  await fetch('/streaming/stop',{method:'POST'});
+  if(streamTimer){clearInterval(streamTimer);streamTimer=null;}
+}
+async function updateStream(){
+  try{
+    const r=await fetch('/streaming/metrics');
+    const d=await r.json();
+    const m=d.metrics||{};
+    document.getElementById('smProcessed').textContent=m.processed||0;
+    document.getElementById('smFraud').textContent=m.fraud_caught||0;
+    document.getElementById('smRate').textContent=(m.fraud_rate||0)+'%';
+    document.getElementById('smLatency').textContent=(m.avg_latency||0)+'ms';
+  }catch(e){}
+}
+</script>
+</body>
+</html>

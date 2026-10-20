@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Dashboard - UPI Fraud Detection</title>
+<meta http-equiv="refresh" content="10">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;}
+header{background:linear-gradient(135deg,#1e3a5f,#0f2544);padding:16px 40px;border-bottom:2px solid #3b82f6;display:flex;justify-content:space-between;align-items:center;}
+header h1{font-size:1.4rem;color:#60a5fa;}
+.back-btn{padding:7px 16px;background:#334155;border:1px solid #475569;border-radius:8px;color:#e2e8f0;text-decoration:none;font-size:0.88rem;}
+.container{max-width:1300px;margin:24px auto;padding:0 20px;}
+
+/* Stats Bar */
+.stats-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+.stat-box{background:#1e293b;border-radius:10px;padding:18px;text-align:center;border:1px solid #334155;}
+.stat-box .num{font-size:2rem;font-weight:800;}
+.stat-box .lbl{font-size:0.8rem;color:#64748b;margin-top:4px;}
+.stat-total  .num{color:#60a5fa;}
+.stat-block  .num{color:#ef4444;}
+.stat-otp    .num{color:#eab308;}
+.stat-ok     .num{color:#22c55e;}
+.stat-sms    .num{color:#a78bfa;}
+
+.section{margin-bottom:28px;}
+.section h2{color:#60a5fa;font-size:1.1rem;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #334155;}
+
+table{width:100%;border-collapse:collapse;background:#1e293b;border-radius:10px;overflow:hidden;}
+thead tr{background:#1e3a5f;}
+th{padding:11px 14px;text-align:left;font-size:0.82rem;color:#94a3b8;font-weight:600;}
+td{padding:11px 14px;font-size:0.85rem;border-bottom:1px solid #0f172a;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#263447;}
+
+.badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:0.78rem;font-weight:700;}
+.badge-block  {background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid #ef4444;}
+.badge-otp    {background:rgba(234,179,8,0.15);color:#eab308;border:1px solid #eab308;}
+.badge-ok     {background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid #22c55e;}
+.badge-high   {background:rgba(239,68,68,0.15);color:#ef4444;}
+.badge-medium {background:rgba(234,179,8,0.15);color:#eab308;}
+.badge-low    {background:rgba(34,197,94,0.15);color:#22c55e;}
+.badge-fraud  {background:rgba(168,85,247,0.15);color:#a78bfa;}
+.badge-otp-sms{background:rgba(234,179,8,0.15);color:#eab308;}
+.badge-approval{background:rgba(34,197,94,0.15);color:#22c55e;}
+
+.empty{text-align:center;padding:40px;color:#475569;}
+.auto-badge{background:#1e3a5f;border:1px solid #3b82f6;color:#60a5fa;padding:3px 10px;border-radius:12px;font-size:0.75rem;margin-left:8px;}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>📊 Admin Dashboard — UPI Fraud Detection</h1>
+    <p style="color:#64748b;font-size:0.8rem;">Auto-refreshes every 10 seconds</p>
+  </div>
+  <a href="/" class="back-btn">← Back to Detection</a>
+</header>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-box stat-total">
+      <div class="num">{{ stats.total }}</div>
+      <div class="lbl">Total Transactions</div>
+    </div>
+    <div class="stat-box stat-block">
+      <div class="num">{{ stats.blocked }}</div>
+      <div class="lbl">🚨 Blocked</div>
+    </div>
+    <div class="stat-box stat-otp">
+      <div class="num">{{ stats.otp }}</div>
+      <div class="lbl">⚠️ OTP Required</div>
+    </div>
+    <div class="stat-box stat-ok">
+      <div class="num">{{ stats.approved }}</div>
+      <div class="lbl">✅ Approved</div>
+    </div>
+    <div class="stat-box stat-sms">
+      <div class="num">{{ stats.sms_sent }}</div>
+      <div class="lbl">📱 SMS Sent</div>
+    </div>
+  </div>
+
+  <!-- Transaction Log -->
+  <div class="section">
+    <h2>📋 Transaction Log <span class="auto-badge">Live</span></h2>
+    {% if transactions %}
+    <table>
+      <thead>
+        <tr>
+          <th>Transaction ID</th>
+          <th>Account</th>
+          <th>Amount</th>
+          <th>Fraud %</th>
+          <th>Risk</th>
+          <th>Decision</th>
+          <th>SMS ID</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for txn in transactions %}
+        <tr>
+          <td style="font-family:monospace;color:#60a5fa">{{ txn.txn_id }}</td>
+          <td>{{ txn.account_id }}</td>
+          <td>₹{{ "{:,.0f}".format(txn.amount) }}</td>
+          <td>
+            <span style="font-weight:700;color:
+              {% if txn.probability >= 70 %}#ef4444
+              {% elif txn.probability >= 40 %}#eab308
+              {% else %}#22c55e{% endif %}">
+              {{ txn.probability }}%
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-{{ txn.risk_level|lower }}">{{ txn.risk_level }}</span>
+          </td>
+          <td>
+            {% if txn.decision == 'BLOCKED' %}
+              <span class="badge badge-block">🚨 BLOCKED</span>
+            {% elif txn.decision == 'OTP_REQUIRED' %}
+              <span class="badge badge-otp">⚠️ OTP SENT</span>
+            {% else %}
+              <span class="badge badge-ok">✅ APPROVED</span>
+            {% endif %}
+          </td>
+          <td style="font-family:monospace;color:#a78bfa;font-size:0.8rem">{{ txn.sms_id }}</td>
+          <td style="color:#64748b;font-size:0.8rem">{{ txn.timestamp }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No transactions yet. Go analyze some transactions!</div>
+    {% endif %}
+  </div>
+
+  <!-- SMS Log -->
+  <div class="section">
+    <h2>📱 SMS Alert Log</h2>
+    {% if sms_log %}
+    <table>
+      <thead>
+        <tr>
+          <th>SMS ID</th>
+          <th>Transaction ID</th>
+          <th>Phone</th>
+          <th>Type</th>
+          <th>Message Preview</th>
+          <th>Status</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sms in sms_log %}
+        <tr>
+          <td style="font-family:monospace;color:#a78bfa">{{ sms.id }}</td>
+          <td style="font-family:monospace;color:#60a5fa">{{ sms.txn_id }}</td>
+          <td>{{ sms.phone }}</td>
+          <td>
+            {% if sms.type == 'FRAUD_ALERT' %}
+              <span class="badge badge-fraud">🚨 FRAUD ALERT</span>
+            {% elif sms.type == 'OTP_REQUEST' %}
+              <span class="badge badge-otp-sms">⚠️ OTP</span>
+            {% else %}
+              <span class="badge badge-approval">✅ APPROVAL</span>
+            {% endif %}
+          </td>
+          <td style="color:#94a3b8;font-size:0.8rem;max-width:320px">{{ sms.message[:80] }}...</td>
+          <td style="color:#22c55e;font-size:0.8rem">{{ sms.status }}</td>
+          <td style="color:#64748b;font-size:0.8rem">{{ sms.timestamp }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No SMS sent yet.</div>
+    {% endif %}
+  </div>
+
+  <!-- Blocked Accounts -->
+  <div class="section">
+    <h2>🚫 Blocked Accounts</h2>
+    {% if blocked %}
+    <table>
+      <thead>
+        <tr><th>Account ID</th><th>Transaction ID</th><th>Fraud %</th><th>Reason</th><th>Blocked At</th></tr>
+      </thead>
+      <tbody>
+        {% for acc_id, info in blocked.items() %}
+        <tr>
+          <td style="color:#ef4444;font-weight:700">{{ acc_id }}</td>
+          <td style="font-family:monospace;color:#60a5fa">{{ info.txn_id }}</td>
+          <td style="color:#ef4444;font-weight:700">{{ info.probability }}%</td>
+          <td style="color:#94a3b8;font-size:0.82rem">{{ info.reason[:60] }}</td>
+          <td style="color:#64748b;font-size:0.8rem">{{ info.blocked_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No accounts blocked.</div>
+    {% endif %}
+  </div>
+
+  <!-- Flagged for Review -->
+  <div class="section">
+    <h2>⚠️ Accounts Flagged for Review</h2>
+    {% if flagged %}
+    <table>
+      <thead>
+        <tr><th>Account ID</th><th>Transaction ID</th><th>Fraud %</th><th>Status</th><th>Reason</th><th>Flagged At</th></tr>
+      </thead>
+      <tbody>
+        {% for acc_id, info in flagged.items() %}
+        <tr>
+          <td style="color:#eab308;font-weight:700">{{ acc_id }}</td>
+          <td style="font-family:monospace;color:#60a5fa">{{ info.txn_id }}</td>
+          <td style="color:#eab308;font-weight:700">{{ info.probability }}%</td>
+          <td><span class="badge badge-otp">{{ info.status }}</span></td>
+          <td style="color:#94a3b8;font-size:0.82rem">{{ info.reason[:60] }}</td>
+          <td style="color:#64748b;font-size:0.8rem">{{ info.flagged_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">No accounts under review.</div>
+    {% endif %}
+  </div>
+
+</div>
+</body>
+</html>

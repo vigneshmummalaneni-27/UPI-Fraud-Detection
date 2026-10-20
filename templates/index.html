@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>UPI Fraud Detection System</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;}
+header{background:linear-gradient(135deg,#1e3a5f,#0f2544);padding:18px 40px;border-bottom:2px solid #3b82f6;display:flex;align-items:center;justify-content:space-between;}
+header h1{font-size:1.6rem;color:#60a5fa;}
+.nav-btn{padding:8px 18px;background:#1d4ed8;border:1px solid #3b82f6;border-radius:8px;color:white;text-decoration:none;font-size:0.9rem;}
+.container{max-width:1250px;margin:28px auto;padding:0 20px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+.card{background:#1e293b;border-radius:12px;padding:22px;border:1px solid #334155;}
+.card h2{color:#60a5fa;margin-bottom:18px;font-size:1.15rem;border-bottom:1px solid #334155;padding-bottom:10px;}
+.form-group{margin-bottom:13px;}
+label{display:block;margin-bottom:4px;color:#94a3b8;font-size:0.88rem;}
+input{width:100%;padding:9px 13px;background:#0f172a;border:1px solid #475569;border-radius:8px;color:#e2e8f0;font-size:0.93rem;}
+input:focus{outline:none;border-color:#3b82f6;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.toggle-group{display:flex;gap:8px;}
+.toggle-btn{flex:1;padding:9px;border:1px solid #475569;background:#0f172a;color:#94a3b8;border-radius:8px;cursor:pointer;font-size:0.88rem;}
+.toggle-btn.active{background:#1d4ed8;border-color:#3b82f6;color:white;font-weight:600;}
+.predict-btn{width:100%;padding:14px;background:linear-gradient(135deg,#1d4ed8,#2563eb);border:none;border-radius:8px;color:white;font-size:1.05rem;cursor:pointer;margin-top:10px;font-weight:700;}
+.predict-btn:disabled{opacity:0.6;cursor:not-allowed;}
+.result-box{display:none;margin-top:18px;padding:20px;border-radius:12px;border:2px solid;text-align:center;}
+.result-box.fraud{background:rgba(239,68,68,0.08);border-color:#ef4444;}
+.result-box.legit{background:rgba(34,197,94,0.08);border-color:#22c55e;}
+.result-box.medium{background:rgba(234,179,8,0.08);border-color:#eab308;}
+.result-icon{font-size:2.8rem;margin-bottom:8px;}
+.result-title{font-size:1.5rem;font-weight:800;margin-bottom:4px;}
+.result-prob{font-size:2rem;font-weight:800;margin:8px 0;}
+.fraud .result-prob{color:#ef4444;}.legit .result-prob{color:#22c55e;}.medium .result-prob{color:#eab308;}
+.action-box{margin-top:14px;padding:14px 18px;border-radius:10px;text-align:left;}
+.action-box.blocked{background:rgba(239,68,68,0.12);border:1.5px solid #ef4444;}
+.action-box.otp{background:rgba(234,179,8,0.12);border:1.5px solid #eab308;}
+.action-box.approved{background:rgba(34,197,94,0.12);border:1.5px solid #22c55e;}
+.action-title{font-size:0.95rem;font-weight:700;margin-bottom:10px;}
+.action-row{display:flex;gap:10px;margin:6px 0;font-size:0.88rem;}
+.action-label{color:#94a3b8;min-width:110px;}
+.action-value{color:#e2e8f0;word-break:break-all;}
+.sms-box{margin-top:12px;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:12px 14px;text-align:left;}
+.sms-title{font-size:0.78rem;color:#64748b;margin-bottom:6px;}
+.sms-bubble{background:#1e3a5f;border-radius:10px;padding:10px 14px;font-size:0.87rem;color:#93c5fd;border-left:3px solid #3b82f6;line-height:1.5;}
+.otp-display{margin-top:10px;background:#1a1200;border:2px dashed #eab308;border-radius:8px;padding:12px;text-align:center;}
+.otp-label{font-size:0.8rem;color:#eab308;margin-bottom:4px;}
+.otp-code{font-size:2rem;font-weight:800;color:#eab308;letter-spacing:8px;}
+.otp-note{font-size:0.72rem;color:#78716c;margin-top:4px;}
+.risk-factors{margin-top:12px;text-align:left;}
+.risk-factor-item{background:rgba(239,68,68,0.08);border-left:3px solid #ef4444;padding:7px 11px;margin:4px 0;border-radius:4px;font-size:0.84rem;color:#fca5a5;}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:15px;}
+.stat-card{background:#0f172a;border-radius:8px;padding:14px;text-align:center;border:1px solid #334155;}
+.stat-card .val{font-size:1.5rem;font-weight:800;color:#60a5fa;}
+.stat-card .lbl{font-size:0.75rem;color:#64748b;margin-top:3px;}
+.model-tab{display:flex;gap:7px;margin-bottom:13px;flex-wrap:wrap;}
+.mtab{padding:6px 12px;border:1px solid #475569;background:#0f172a;color:#94a3b8;border-radius:6px;cursor:pointer;font-size:0.82rem;}
+.mtab.active{background:#1d4ed8;border-color:#3b82f6;color:white;}
+.cm-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;}
+.cm-cell{padding:12px;border-radius:8px;text-align:center;font-size:0.82rem;}
+.cm-tn{background:rgba(34,197,94,0.1);border:1px solid #22c55e;}
+.cm-fp{background:rgba(239,68,68,0.1);border:1px solid #ef4444;}
+.cm-fn{background:rgba(239,68,68,0.1);border:1px solid #ef4444;}
+.cm-tp{background:rgba(34,197,94,0.1);border:1px solid #22c55e;}
+.cm-cell .num{font-size:1.4rem;font-weight:800;}
+.cm-cell .desc{font-size:0.72rem;color:#94a3b8;margin-top:3px;}
+.info-bar{background:#1e3a5f;border:1px solid #3b82f6;border-radius:8px;padding:11px 18px;margin-bottom:22px;color:#93c5fd;font-size:0.9rem;}
+.threshold-info{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;}
+.thr{padding:5px 14px;border-radius:20px;font-size:0.82rem;font-weight:600;}
+.thr-high{background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid #ef4444;}
+.thr-medium{background:rgba(234,179,8,0.15);color:#eab308;border:1px solid #eab308;}
+.thr-low{background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid #22c55e;}
+.decision-flow{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+.df-row{background:#0f172a;border-radius:8px;padding:11px 14px;display:flex;align-items:center;gap:10px;}
+.test-btns{display:flex;flex-direction:column;gap:7px;margin-top:10px;}
+.test-btn{padding:9px;border-radius:7px;cursor:pointer;font-size:0.87rem;text-align:left;}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🛡️ UPI Fraud Detection System</h1>
+    <p style="color:#94a3b8;font-size:0.82rem;">Auto Block + SMS Alert + OTP Verification</p>
+  </div>
+  <a href="/dashboard" class="nav-btn">📊 Admin Dashboard →</a>
+</header>
+
+<div class="container">
+  <div class="info-bar">
+    ⚡ <strong>Decision Engine Active:</strong> Transactions are analyzed and actioned automatically.
+    <div class="threshold-info">
+      <span class="thr thr-high">🚨 Above 70% → BLOCK + SMS Alert</span>
+      <span class="thr thr-medium">⚠️ 40–70% → OTP Verification</span>
+      <span class="thr thr-low">✅ Below 40% → APPROVE</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>🔍 Transaction Details</h2>
+      <div class="form-row">
+        <div class="form-group"><label>Account ID</label><input type="text" id="account_id" value="ACC98765"></div>
+        <div class="form-group"><label>Phone Number</label><input type="text" id="phone" value="+91-9876543210"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Amount (Rs.)</label><input type="number" id="amount" value="5000"></div>
+        <div class="form-group"><label>Hour (0-23)</label><input type="number" id="hour" value="14" min="0" max="23"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Transaction Frequency</label><input type="number" id="transaction_frequency" value="3"></div>
+        <div class="form-group"><label>Distance from Home (km)</label><input type="number" id="distance_from_home" value="10"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Failed Attempts</label><input type="number" id="failed_attempts" value="0"></div>
+        <div class="form-group"><label>Beneficiary Age (days)</label><input type="number" id="beneficiary_age_days" value="100"></div>
+      </div>
+      <div class="form-group"><label>New Device?</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" onclick="setToggle('new_device',0,this)">No</button>
+          <button class="toggle-btn" onclick="setToggle('new_device',1,this)">Yes</button>
+        </div><input type="hidden" id="new_device" value="0">
+      </div>
+      <div class="form-group"><label>VPN Used?</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" onclick="setToggle('vpn_used',0,this)">No</button>
+          <button class="toggle-btn" onclick="setToggle('vpn_used',1,this)">Yes</button>
+        </div><input type="hidden" id="vpn_used" value="0">
+      </div>
+      <div class="form-group"><label>Same Bank?</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" onclick="setToggle('same_bank',1,this)">Yes</button>
+          <button class="toggle-btn" onclick="setToggle('same_bank',0,this)">No</button>
+        </div><input type="hidden" id="same_bank" value="1">
+      </div>
+      <div class="form-group"><label>Weekend?</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" onclick="setToggle('weekend',0,this)">No</button>
+          <button class="toggle-btn" onclick="setToggle('weekend',1,this)">Yes</button>
+        </div><input type="hidden" id="weekend" value="0">
+      </div>
+      <button class="predict-btn" onclick="predict()" id="predictBtn">🔎 Analyze and Process Transaction</button>
+
+      <div class="result-box" id="resultBox">
+        <div class="result-icon" id="resultIcon"></div>
+        <div class="result-title" id="resultTitle"></div>
+        <div class="result-prob" id="resultProb"></div>
+        <div class="action-box" id="actionBox">
+          <div class="action-title" id="actionTitle"></div>
+          <div class="action-row"><span class="action-label">Transaction ID</span><span class="action-value" id="txnId"></span></div>
+          <div class="action-row"><span class="action-label">Account</span><span class="action-value" id="accId"></span></div>
+          <div class="action-row"><span class="action-label">Action Taken</span><span class="action-value" id="decisionMsg"></span></div>
+        </div>
+        <div class="otp-display" id="otpBox" style="display:none">
+          <div class="otp-label">📱 OTP Sent to Customer Mobile</div>
+          <div class="otp-code" id="otpCode"></div>
+          <div class="otp-note">Demo only — In production OTP is sent via SMS only</div>
+        </div>
+        <div class="sms-box">
+          <div class="sms-title">📱 SMS Sent to Customer</div>
+          <div class="sms-bubble" id="smsBubble"></div>
+        </div>
+        <div class="risk-factors" id="riskFactors"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📊 Model Performance</h2>
+      {% if results %}
+      <div class="model-tab">
+        {% for name in results %}
+        <button class="mtab {% if loop.first %}active{% endif %}" onclick="showModel('{{name}}',this)">{{name}}</button>
+        {% endfor %}
+      </div>
+      {% for name, stats in results.items() %}
+      <div class="model-stats" id="model-{{loop.index}}" {% if not loop.first %}style="display:none"{% endif %}>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="val">{{stats.accuracy}}%</div><div class="lbl">Accuracy</div></div>
+          <div class="stat-card"><div class="val">{{stats.f1}}%</div><div class="lbl">F1 Score</div></div>
+          <div class="stat-card"><div class="val">{{stats.auc}}%</div><div class="lbl">ROC-AUC</div></div>
+        </div>
+        <p style="color:#64748b;font-size:0.82rem;margin:12px 0 6px">Confusion Matrix</p>
+        <div class="cm-grid">
+          <div class="cm-cell cm-tn"><div class="num">{{stats.cm[0][0]}}</div><div class="desc">True Negative</div></div>
+          <div class="cm-cell cm-fp"><div class="num">{{stats.cm[0][1]}}</div><div class="desc">False Positive</div></div>
+          <div class="cm-cell cm-fn"><div class="num">{{stats.cm[1][0]}}</div><div class="desc">False Negative</div></div>
+          <div class="cm-cell cm-tp"><div class="num">{{stats.cm[1][1]}}</div><div class="desc">True Positive</div></div>
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <p style="color:#64748b;text-align:center;padding:30px">Run train_model.py first</p>
+      {% endif %}
+
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid #334155;">
+        <h3 style="color:#60a5fa;font-size:0.95rem;margin-bottom:10px;">⚡ Automated Decision Flow</h3>
+        <div class="decision-flow">
+          <div class="df-row" style="border:1px solid #ef4444;">
+            <span>🚨</span><div><div style="color:#ef4444;font-weight:700;font-size:0.88rem;">Above 70% Fraud Probability</div><div style="color:#94a3b8;font-size:0.8rem;">Block transaction + FRAUD ALERT SMS + Flag account</div></div>
+          </div>
+          <div class="df-row" style="border:1px solid #eab308;">
+            <span>⚠️</span><div><div style="color:#eab308;font-weight:700;font-size:0.88rem;">40% to 70% Fraud Probability</div><div style="color:#94a3b8;font-size:0.8rem;">Hold transaction + OTP SMS + Add to review queue</div></div>
+          </div>
+          <div class="df-row" style="border:1px solid #22c55e;">
+            <span>✅</span><div><div style="color:#22c55e;font-weight:700;font-size:0.88rem;">Below 40% Fraud Probability</div><div style="color:#94a3b8;font-size:0.8rem;">Approve instantly + Confirmation SMS</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px;padding-top:16px;border-top:1px solid #334155;">
+        <h3 style="color:#60a5fa;font-size:0.95rem;margin-bottom:8px;">🧪 Quick Test Cases</h3>
+        <div class="test-btns">
+          <button class="test-btn" onclick="loadTest('fraud')" style="background:rgba(239,68,68,0.1);border:1px solid #ef4444;color:#ef4444;">🚨 FRAUD: Rs.48,000 | 3AM | VPN | New Device | New Account</button>
+          <button class="test-btn" onclick="loadTest('medium')" style="background:rgba(234,179,8,0.1);border:1px solid #eab308;color:#eab308;">⚠️ MEDIUM: Rs.8,000 | New Device | VPN | Normal time</button>
+          <button class="test-btn" onclick="loadTest('legit')" style="background:rgba(34,197,94,0.1);border:1px solid #22c55e;color:#22c55e;">✅ LEGIT: Rs.500 | 2PM | Known Device | No VPN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let modelMap={};
+{% if results %}{% for name in results %}modelMap["{{name}}"]={{loop.index}};{% endfor %}{% endif %}
+
+function setToggle(f,v,btn){
+  document.getElementById(f).value=v;
+  btn.parentElement.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function showModel(name,btn){
+  document.querySelectorAll('.model-stats').forEach(e=>e.style.display='none');
+  document.getElementById('model-'+modelMap[name]).style.display='block';
+  document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function loadTest(type){
+  const tests={
+    fraud:{amount:48000,hour:3,transaction_frequency:30,distance_from_home:2000,failed_attempts:5,new_device:1,vpn_used:1,beneficiary_age_days:1,same_bank:0,weekend:1},
+    medium:{amount:8000,hour:11,transaction_frequency:8,distance_from_home:50,failed_attempts:1,new_device:1,vpn_used:1,beneficiary_age_days:200,same_bank:1,weekend:0},
+    legit:{amount:500,hour:14,transaction_frequency:2,distance_from_home:5,failed_attempts:0,new_device:0,vpn_used:0,beneficiary_age_days:300,same_bank:1,weekend:0}
+  };
+  const t=tests[type];
+  ['amount','hour','transaction_frequency','distance_from_home','failed_attempts','beneficiary_age_days']
+    .forEach(f=>document.getElementById(f).value=t[f]);
+  ['new_device','vpn_used','same_bank','weekend'].forEach(f=>{
+    document.getElementById(f).value=t[f];
+    document.querySelectorAll(`[onclick*="'${f}'"]`).forEach(b=>{
+      b.classList.remove('active');
+      const m=b.getAttribute('onclick').match(/,(\d+),/);
+      if(m&&parseInt(m[1])===t[f])b.classList.add('active');
+    });
+  });
+}
+async function predict(){
+  const btn=document.getElementById('predictBtn');
+  btn.textContent='Analyzing...';btn.disabled=true;
+  const payload={
+    account_id:document.getElementById('account_id').value,
+    phone:document.getElementById('phone').value,
+    amount:document.getElementById('amount').value,
+    hour:document.getElementById('hour').value,
+    transaction_frequency:document.getElementById('transaction_frequency').value,
+    distance_from_home:document.getElementById('distance_from_home').value,
+    failed_attempts:document.getElementById('failed_attempts').value,
+    new_device:document.getElementById('new_device').value,
+    vpn_used:document.getElementById('vpn_used').value,
+    beneficiary_age_days:document.getElementById('beneficiary_age_days').value,
+    same_bank:document.getElementById('same_bank').value,
+    weekend:document.getElementById('weekend').value
+  };
+  try{
+    const res=await fetch('/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const data=await res.json();
+    const box=document.getElementById('resultBox');
+    box.style.display='block';
+    const ab=document.getElementById('actionBox');
+    const ob=document.getElementById('otpBox');
+    if(data.decision==='BLOCKED'){
+      box.className='result-box fraud';
+      document.getElementById('resultIcon').textContent='🚨';
+      document.getElementById('resultTitle').innerHTML='<span style="color:#ef4444">TRANSACTION BLOCKED</span>';
+      ab.className='action-box blocked';
+      document.getElementById('actionTitle').innerHTML='🚨 ACTION: Transaction Automatically Blocked';
+      ob.style.display='none';
+    }else if(data.decision==='OTP_REQUIRED'){
+      box.className='result-box medium';
+      document.getElementById('resultIcon').textContent='⚠️';
+      document.getElementById('resultTitle').innerHTML='<span style="color:#eab308">OTP VERIFICATION REQUIRED</span>';
+      ab.className='action-box otp';
+      document.getElementById('actionTitle').innerHTML='⚠️ ACTION: OTP Sent — Awaiting Customer Verification';
+      ob.style.display='block';
+      document.getElementById('otpCode').textContent=data.action.otp||'------';
+    }else{
+      box.className='result-box legit';
+      document.getElementById('resultIcon').textContent='✅';
+      document.getElementById('resultTitle').innerHTML='<span style="color:#22c55e">TRANSACTION APPROVED</span>';
+      ab.className='action-box approved';
+      document.getElementById('actionTitle').innerHTML='✅ ACTION: Transaction Approved and Processed';
+      ob.style.display='none';
+    }
+    document.getElementById('resultProb').textContent=data.probability+'% Fraud Probability';
+    document.getElementById('txnId').textContent=data.txn_id;
+    document.getElementById('accId').textContent=data.account_id;
+    document.getElementById('decisionMsg').textContent=data.decision_msg;
+    document.getElementById('smsBubble').textContent=data.sms_preview;
+    let rf='';
+    if(data.risk_factors&&data.risk_factors.length>0){
+      rf='<p style="color:#94a3b8;font-size:0.82rem;margin:10px 0 5px">Risk Factors Detected:</p>';
+      data.risk_factors.forEach(f=>{rf+=`<div class="risk-factor-item">⚠️ ${f}</div>`;});
+    }
+    document.getElementById('riskFactors').innerHTML=rf;
+    box.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }catch(e){alert('Error: '+e.message);}
+  btn.textContent='🔎 Analyze and Process Transaction';btn.disabled=false;
+}
+</script>
+</body>
+</html>
